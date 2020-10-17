@@ -23,6 +23,10 @@ defmodule Chuck.UserApplication do
     }
   end
 
+  def start(_, args) do
+    start(args)
+  end
+
   def start(_args) do
     # Children to be supervised
     children = [

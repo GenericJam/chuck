@@ -12,7 +12,6 @@
 
 `iex -S mix`
 
-### Or you can just skip the install yourself and hit it here.
 
 ### Interact with it like this
 Go get [wscat](https://github.com/websockets/wscat) or some sort of websocket client

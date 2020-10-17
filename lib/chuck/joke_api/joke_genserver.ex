@@ -25,7 +25,7 @@ defmodule Chuck.JokeGenServer do
     GenServer.start_link(@joke_api, [], name: @joke_api)
   end
 
-  def get(%{message: message, websocket_pid: websocket_pid} = args_tuple) do
+  def get(%{message: _, websocket_pid: _} = args_tuple) do
     send_async(args_tuple)
   end
 

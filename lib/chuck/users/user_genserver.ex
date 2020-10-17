@@ -41,7 +41,7 @@ defmodule Chuck.User do
   @doc """
   Call me maybe
   """
-  def handle_call({:get_state}, from, state) do
+  def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
   end
 
@@ -93,7 +93,7 @@ defmodule Chuck.User do
   end
 
   # Get a random joke from API with no args
-  def handle_cast(%{"type" => "get"} = message, %{websocket_pid: websocket_pid} = state) do
+  def handle_cast(%{"type" => "get"}, %{websocket_pid: websocket_pid} = state) do
     Chuck.JokeGenServer.get(%{
       message: %{"type" => "get", "body" => %{"extension" => "random"}},
       websocket_pid: websocket_pid
@@ -104,8 +104,8 @@ defmodule Chuck.User do
 
   # Share favorite jokes with other user
   def handle_cast(
-        %{"type" => "share_favorites", "body" => %{"share_with" => other_user}} = message,
-        %{websocket_pid: websocket_pid, favorites: favorites, username: username} = state
+        %{"type" => "share_favorites", "body" => %{"share_with" => _}} = message,
+        %{favorites: favorites, username: username} = state
       ) do
     Chuck.JokeGenServer.share_favorites(%{
       message: message,
@@ -118,8 +118,7 @@ defmodule Chuck.User do
 
   # Receive favorite jokes from other user
   def handle_cast(
-        %{"type" => "shared_favorites", "body" => %{"favorites" => response, "from" => username}} =
-          message,
+        %{"type" => "shared_favorites", "body" => %{"favorites" => _, "from" => _}} = message,
         %{websocket_pid: websocket_pid} = state
       ) do
     send(websocket_pid, message)

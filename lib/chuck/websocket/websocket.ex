@@ -42,14 +42,12 @@ defmodule Chuck.Websocket do
 
   # Something went wrong as it didn't hit a match
   def websocket_init(other) do
-    state = []
-
     Logger.info(
-      "Something went wrong with getting username from request #{state |> inspect}. Closing connection."
+      "Something went wrong with getting username from request #{other |> inspect}. Closing connection."
     )
 
     # Kill off this connection as it is no longer valid without a username
-    {:stop, state}
+    {:stop, []}
   end
 
   @doc """
