@@ -13,7 +13,6 @@ defmodule Chuck.JokeGenServer do
   Init callback
   """
   def init([]) do
-    Logger.debug("init joke api genserver")
     {:ok, []}
   end
 
@@ -21,7 +20,6 @@ defmodule Chuck.JokeGenServer do
   Start
   """
   def start_link(_) do
-    Logger.debug("start_link joke api genserver")
     GenServer.start_link(@joke_api, [], name: @joke_api)
   end
 
@@ -43,6 +41,14 @@ defmodule Chuck.JokeGenServer do
   """
   def send_async(args_tuple), do: GenServer.cast(@joke_api, args_tuple)
 
+  @doc """
+  Call me maybe
+
+  ## Examples
+  iex>Chuck.JokeGenServer.handle_call("anything", self(), %{})
+  {:reply, "Pocket dial?", %{}}
+
+  """
   # Generic call
   def handle_call(message, from, state) do
     Logger.debug(
@@ -51,9 +57,23 @@ defmodule Chuck.JokeGenServer do
       }"
     )
 
-    {:reply, "Yo", state}
+    {:reply, "Pocket dial?", state}
   end
 
+  @doc """
+  All cast functions
+
+  ## Examples - just a smoke test really doesn't really test anything other than these won't crash the server
+  iex>Chuck.JokeGenServer.handle_cast(%{message: %{"type" => "get", "body" => %{"extension" => "0eT4dyWoQAmz2614dyfDFQ"}}, websocket_pid: self()}, %{})
+  {:noreply, %{}}
+
+  iex>Chuck.JokeGenServer.handle_cast(%{message: %{"type" => "share_favorites", "body" => %{"share_with" => "Sue"}}, username: "Zorro", favorites: []}, %{})
+  {:noreply, %{}}
+
+  iex>Chuck.JokeGenServer.handle_cast(%{message: %{"type" => "share_favorites", "body" => %{"share_with" => "Sue"}}, username: "Zorro",favorites: []}, %{})
+  {:noreply, %{}}
+  """
+  # Service a single request to the API
   def handle_cast(
         %{
           message: %{"type" => "get", "body" => %{"extension" => extension}} = message,
@@ -61,9 +81,7 @@ defmodule Chuck.JokeGenServer do
         },
         state
       ) do
-    Logger.debug("Expected cast in JokeGenServer: #{message |> inspect}, #{state |> inspect}")
     url = URI.encode("#{Application.get_env(:chuck, :url)}#{extension}")
-    Logger.debug("url: #{url |> inspect}")
 
     response =
       handle_request(
@@ -90,19 +108,7 @@ defmodule Chuck.JokeGenServer do
         state
       )
       when is_list(favorites) do
-    response =
-      favorites
-      |> Enum.map(fn favorite ->
-        # The joke id is also the extension
-        handle_request(
-          Mojito.request(
-            method: :get,
-            url: URI.encode("#{Application.get_env(:chuck, :url)}#{favorite}"),
-            # There's a problem with the SSL certs on this site so ignoring them otherwise it fails
-            opts: [transport_opts: [verify: :verify_none]]
-          )
-        )
-      end)
+    response = get_favorites(favorites)
 
     # Send it to the other User GenServer which will then get sent to their websocket
     Chuck.UserApplication.user_message(%{
@@ -122,19 +128,7 @@ defmodule Chuck.JokeGenServer do
         state
       )
       when is_list(favorites) do
-    response =
-      favorites
-      |> Enum.map(fn favorite ->
-        # The joke id is also the extension
-        handle_request(
-          Mojito.request(
-            method: :get,
-            url: URI.encode("#{Application.get_env(:chuck, :url)}#{favorite}"),
-            # There's a problem with the SSL certs on this site so ignoring them otherwise it fails
-            opts: [transport_opts: [verify: :verify_none]]
-          )
-        )
-      end)
+    response = get_favorites(favorites)
 
     send(websocket_pid, %{
       "type" => "favorites",
@@ -159,5 +153,21 @@ defmodule Chuck.JokeGenServer do
     Logger.error("Error trying to access Chuck API #{error |> inspect}")
     # Fail gracefully
     %{}
+  end
+
+  # Fetches all of the favorites in the supplied list
+  defp get_favorites(favorites_list) when is_list(favorites_list) do
+    favorites_list
+    |> Enum.map(fn favorite ->
+      # The joke id is also the extension
+      handle_request(
+        Mojito.request(
+          method: :get,
+          url: URI.encode("#{Application.get_env(:chuck, :url)}#{favorite}"),
+          # There's a problem with the SSL certs on this site so ignoring them otherwise it fails
+          opts: [transport_opts: [verify: :verify_none]]
+        )
+      )
+    end)
   end
 end

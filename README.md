@@ -1,6 +1,7 @@
 # Chuck
 
 ## API for interacting with the [Chuck Norris API](https://api.chucknorris.io/)
+How much Norris could a Norris Chuck Chuck if a Norris Chuck could Chuck Norris?
 
 ### If for some reason you want to build this yourself
 
@@ -12,6 +13,9 @@
 
 `iex -S mix`
 
+### Tests!
+
+`mix test`
 
 ### Interact with it like this
 Go get [wscat](https://github.com/websockets/wscat) or some sort of websocket client

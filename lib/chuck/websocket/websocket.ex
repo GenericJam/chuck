@@ -5,14 +5,20 @@ defmodule Chuck.Websocket do
 
   # The state of the User right now
   defstruct username: ""
-  # websocket_pid: nil
 
   @doc """
   Before upgrade
+
+  ## Examples
+  iex> Chuck.Websocket.init(Chuck.WebsocketHelpers.request_start_session(), "ignore")
+  {:cowboy_websocket, Chuck.WebsocketHelpers.request_start_session(), %Chuck.Websocket{username: "TomBombadil"}}
+
+  iex>{:ok, cowboy_400, %{}} = Chuck.Websocket.init(Chuck.WebsocketHelpers.request_fail_start_session(), "ignore")
+  iex>Chuck.WebsocketHelpers.request_equality(Chuck.WebsocketHelpers.cowboy_400, cowboy_400)
+  true
   """
   def init(%{path_info: path_info} = request, _state) do
     # path_info is a list of all of the args after the host eg /username/whatever/else
-    Logger.debug("path_info #{path_info |> inspect}")
     # Put something in to limit username to sane length and characters...
     cond do
       validate_user(path_info) ->
@@ -34,6 +40,14 @@ defmodule Chuck.Websocket do
 
   @doc """
   After upgrade
+
+  ## Examples
+  iex>Chuck.Websocket.websocket_init(%Chuck.Websocket{username: "TomBombadil"})
+  {:ok, %Chuck.Websocket{username: "TomBombadil"}}
+
+  iex>Chuck.Websocket.websocket_init(%{})
+  {:stop, []}
+
   """
   def websocket_init(%{username: username} = state) do
     Chuck.UserApplication.get_user(%{username: username, websocket_pid: self()})
@@ -52,6 +66,14 @@ defmodule Chuck.Websocket do
 
   @doc """
   Handle each message
+  These are Cowboy methods
+
+  ## Examples
+  iex>Chuck.Websocket.websocket_handle({:text, %{"type"=>"favorite", "body" => %{"joke_id" => "0eT4dyWoQAmz2614dyfDFQ"}} |> Jason.encode!()}, %Chuck.Websocket{username: "TomBombadil"})
+  {:ok, %Chuck.Websocket{username: "TomBombadil"}}
+
+  iex>Chuck.Websocket.websocket_handle({:text, "not json"}, %Chuck.Websocket{username: "TomBombadil"})
+  {:reply, {:text, "Probably not JSON. Ill formed request."}}
   """
   def websocket_handle({:text, raw_json}, %{username: username} = state) do
     Logger.info("From client: #{raw_json |> inspect}")
@@ -64,7 +86,7 @@ defmodule Chuck.Websocket do
     end
   end
 
-  # Catch all. Monitor for weird garbage.
+  # Catch all. Monitor for weird garbage coming from the client.
   def websocket_handle(something_else, state) do
     Logger.info(
       "Unexpected from client: #{something_else |> inspect} in state #{state |> inspect}"
@@ -90,6 +112,7 @@ defmodule Chuck.Websocket do
   @doc """
   These are cowboy methods which catch the replies back from the rest of the application
   """
+  # Tell the websocket to close
   def websocket_info(:close, state) do
     Logger.info("Close websocket with state: #{state |> inspect}")
     {:stop, state}

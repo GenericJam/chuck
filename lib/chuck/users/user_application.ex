@@ -43,7 +43,6 @@ defmodule Chuck.UserApplication do
   Called when websocket is initiated
   """
   def get_user(%{username: username, websocket_pid: websocket_pid}) do
-    Logger.info("get_user #{%{username: username, websocket_pid: websocket_pid} |> inspect}")
     UserSupervisor.get_process(username)
     User.send_async(username, {:init_socket, websocket_pid})
   end
@@ -52,21 +51,13 @@ defmodule Chuck.UserApplication do
   Send User GenServer a message
   """
   def user_message(%{username: username, message: message}) do
-    Logger.info("user_message #{message |> inspect}")
     User.send_async(username, message)
   end
 
-  # @doc """
-  # Send User client a message
-  # """
-  # def receive_message(%{username: username, message: message}) do
-  #   Logger.info("user_message #{message |> inspect}")
-  #   User.send_async(username, message)
-  # end
-
+  @doc """
+  Useful for debugging
+  """
   def get_state(username) do
-    # UserSupervisor.get_process(username)
-    Logger.info("State of #{username}")
     User.send_sync(username, {:get_state}) |> inspect() |> Logger.info()
   end
 end

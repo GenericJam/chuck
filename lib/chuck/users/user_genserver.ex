@@ -17,9 +17,7 @@ defmodule Chuck.User do
   @doc """
   Init callback
   """
-  def init([username]) do
-    {:ok, %__MODULE__{username: username}}
-  end
+  def init([username]), do: {:ok, %__MODULE__{username: username}}
 
   @doc """
   Start a User
@@ -40,6 +38,14 @@ defmodule Chuck.User do
 
   @doc """
   Call me maybe
+
+  ## Examples
+  iex>Chuck.User.handle_call({:get_state}, self(), %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:reply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}}
+
+  iex>Chuck.User.handle_call("something", self(), %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:reply, "Did you mean to call me?", %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}}
+
   """
   def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
@@ -51,11 +57,34 @@ defmodule Chuck.User do
       "Unexpected call in User: #{message |> inspect}, #{from |> inspect}, #{state |> inspect}"
     )
 
-    {:reply, "Yo", state}
+    {:reply, "Did you mean to call me?", state}
   end
 
   @doc """
   All cast functions
+
+  ## Examples
+  iex>Chuck.User.handle_cast({:init_socket, self()}, %Chuck.User{username: "Zorro", websocket_pid: nil, favorites: []})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: []}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "favorites"}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "favorite", "body" => %{"joke_id" => "3"}}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: ["3",Jokes.id()]}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "get", "body" => %{"extension" => Jokes.id()}}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: []})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: []}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "get"}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: []})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: []}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "share_favorites", "body" => %{"share_with" => "Sue"}}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}}
+
+  iex>Chuck.User.handle_cast(%{"type" => "shared_favorites", "body" => %{"favorites" => [], "from" => "Sue"}}, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]})
+  {:noreply, %Chuck.User{username: "Zorro", websocket_pid: self(), favorites: [Jokes.id()]}}
+
   """
   def handle_cast({:init_socket, websocket_pid}, state) do
     {:noreply, %__MODULE__{state | websocket_pid: websocket_pid}}
@@ -66,6 +95,7 @@ defmodule Chuck.User do
         %{"type" => "favorites"} = message,
         %{favorites: favorites, websocket_pid: websocket_pid} = state
       ) do
+    # Fetch from the API and send it to the websocket
     Chuck.JokeGenServer.get(%{
       message: message,
       favorites: favorites,
